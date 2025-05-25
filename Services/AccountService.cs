@@ -1,6 +1,5 @@
 ﻿using MessagePack;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
 using Server.Crypto;
 using Server.Data;
 using Server.Models.Dto.Account.Create;
@@ -24,20 +23,15 @@ namespace Server.Services
         {
             try
             {
-                var settings = new JsonSerializerSettings
-                {
-                    ContractResolver = new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver()
-                };
-
                 var request = MessagePackSerializer.Deserialize<CreateAccountRequest>(rawData);
 
                 if (!timestampValidator.IsValid(request.Timestamp))
                     return false;
 
-                //if (!await hCaptchaService.VerifyAsync(request.ChaptchaToken))
-                //    return false;
+                if (!await hCaptchaService.VerifyAsync(request.ChaptchaToken))
+                    return false;
 
-                if (!(request.Device.PreKeys.Count == 50))
+                if (!(request.Device.PreKeys.Length == 50))
                     return false;
 
                 if (!await mlDsaKeyVerifier.VerifyAsync(request.Device.SPK, rawData, requestSignature))
@@ -49,10 +43,12 @@ namespace Server.Services
                 if (await dbContext.Accounts.AnyAsync(a => a.Id == request.Id))
                     return false;
 
-                Account newAccount = new();
-                newAccount.Id = request.Id;
-                newAccount.Name = request.Username ?? throw new ArgumentNullException();
-                newAccount.Devices = [];
+                Account newAccount = new()
+                {
+                    Id = request.Id,
+                    Name = request.Username ?? throw new ArgumentNullException(),
+                    Devices = []
+                };
                 newAccount.Devices.Add(new Device()
                 {
                     Id = request.Device.Id,

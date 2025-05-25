@@ -1,12 +1,16 @@
-﻿    namespace Server.Models.Dto.Account.Create
+﻿using MessagePack;
+using System.Collections.Immutable;
+
+namespace Server.Models.Dto.Account.Create
 {
-    public class RegisterDeviceRequest
+    [MessagePackObject]
+    internal class RegisterDeviceRequest
     {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public byte[] SPK { get; set; } //Base 64
-        public byte[] Signature { get; set; } //Base 64
-        public List<RegisterPreKeyRequest> PreKeys { get; set; }
+        [Key(0)] public string Id { get; set; }
+        [Key(1)] public string Name { get; set; }
+        [Key(2)] public byte[] SPK { get; set; }
+        [Key(3)] public byte[] Signature { get; set; }
+        [Key(4)] public ImmutableArray<RegisterPreKeyRequest> PreKeys { get; set; }
     }
 
 }

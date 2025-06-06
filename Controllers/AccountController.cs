@@ -46,9 +46,9 @@ namespace ArqanumServer.Controllers
                 if (string.IsNullOrWhiteSpace(request.Username))
                     return BadRequest("Username is required.");
 
-                bool isTaken = await accountService.IsUsernameTakenAsync(request.Username);
+                var result = await accountService.IsUsernameTakenAsync(request.Username);
 
-                return Ok(new { available = !isTaken });
+                return Ok(result);
             }
             catch
             {

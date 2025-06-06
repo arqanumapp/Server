@@ -12,7 +12,7 @@ namespace ArqanumServer.Services
     {
         Task<bool> CreateAccountAsync(byte[] requestSignature, byte[] rawJson);
 
-        Task<bool> IsUsernameTakenAsync(string username);
+        Task<UsernameAvailabilityResponseDto> IsUsernameTakenAsync(string username);
     }
     public class AccountService(AppDbContext dbContext, IProofOfWorkValidator proofOfWorkService, IHCaptchaValidator hCaptchaService, ITimestampValidator timestampValidator, IMlDsaKeyVerifier mlDsaKeyVerifier) : IAccountService
     {
@@ -56,14 +56,16 @@ namespace ArqanumServer.Services
             }
         }
 
-        public async Task<bool> IsUsernameTakenAsync(string username)
+        public async Task<UsernameAvailabilityResponseDto> IsUsernameTakenAsync(string username)
         {
             if (string.IsNullOrWhiteSpace(username))
                 throw new ArgumentException("Username must not be null or empty.", nameof(username));
 
-            return await dbContext.Accounts
+            var result =  await dbContext.Accounts
                 .AsNoTracking()
                 .AnyAsync(a => a.Username == username);
+
+            return new UsernameAvailabilityResponseDto() { Available = !result };
         }
     }
 }

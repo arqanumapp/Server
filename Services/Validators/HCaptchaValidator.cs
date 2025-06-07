@@ -1,4 +1,6 @@
-﻿namespace ArqanumServer.Services.Validators
+﻿using Newtonsoft.Json.Linq;
+
+namespace ArqanumServer.Services.Validators
 {
     public interface IHCaptchaValidator
     {
@@ -27,7 +29,7 @@
                 var responseString = await response.Content.ReadAsStringAsync();
 
                 dynamic jsonResponse = JObject.Parse(responseString);
-                return jsonResponse.success == "true";
+                return (bool)jsonResponse.success;
             }
             catch (Exception ex)
             {

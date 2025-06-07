@@ -5,7 +5,7 @@ namespace ArqanumServer.Controllers
     public class CaptchaController : Controller
     {
         [HttpGet]
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
             return View();
         }

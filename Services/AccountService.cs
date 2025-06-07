@@ -25,7 +25,7 @@ namespace ArqanumServer.Services
                 if (!timestampValidator.IsValid(request.Timestamp))
                     return false;
 
-                if (!await hCaptchaService.VerifyAsync(request.ChaptchaToken))
+                if (!await hCaptchaService.VerifyAsync(request.CaptchaToken))
                     return false;
 
                 if (await dbContext.Accounts.AnyAsync(a => a.Id == request.AccountId))
@@ -61,11 +61,11 @@ namespace ArqanumServer.Services
             if (string.IsNullOrWhiteSpace(username))
                 throw new ArgumentException("Username must not be null or empty.", nameof(username));
 
-            var result =  await dbContext.Accounts
+            var exists = await dbContext.Accounts
                 .AsNoTracking()
                 .AnyAsync(a => a.Username == username);
 
-            return new UsernameAvailabilityResponseDto() { Available = !result };
+            return new UsernameAvailabilityResponseDto { Available = !exists };
         }
     }
 }

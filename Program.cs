@@ -9,6 +9,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddControllersWithViews();
 
+builder.Services.AddMvc();
+
 builder.Services.AddArqanumServices();
 
 builder.Services.AddCustomRateLimiters();
@@ -23,9 +25,16 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-app.UseRouting();   
+app.UseRouting();
 
 app.UseAuthorization();
 
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapControllerRoute(
+        name: "default",
+        pattern: "{controller=Home}/{action=Index}/{id?}");
+});
 
 app.Run();
+

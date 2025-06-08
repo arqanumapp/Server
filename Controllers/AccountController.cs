@@ -24,12 +24,12 @@ namespace ArqanumServer.Controllers
                 await Request.Body.CopyToAsync(ms);
                 var rawData = ms.ToArray();
 
-                var result = await accountService.CreateAccountAsync(signatureBytes, rawData);
+                var (IsComplete, AvatarUrl) = await accountService.CreateAccountAsync(signatureBytes, rawData);
 
-                if (!result)
+                if (!IsComplete)
                     return BadRequest("Invalid signature or data");
 
-                return Ok();
+                return Ok(AvatarUrl);
             }
             catch (Exception ex)
             {

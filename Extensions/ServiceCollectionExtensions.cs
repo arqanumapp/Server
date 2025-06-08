@@ -1,4 +1,5 @@
 ﻿using ArqanumServer.Crypto;
+using ArqanumServer.Data;
 using ArqanumServer.Services;
 using ArqanumServer.Services.Validators;
 
@@ -8,17 +9,21 @@ namespace ArqanumServer.Extensions
     {
         public static IServiceCollection AddArqanumServices(this IServiceCollection services)
         {
-            services.AddScoped<IHCaptchaValidator, HCaptchaValidator>();
+            services.AddTransient<IHCaptchaValidator, HCaptchaValidator>();
 
-            services.AddScoped<IProofOfWorkValidator, ProofOfWorkValidator>();
+            services.AddTransient<IProofOfWorkValidator, ProofOfWorkValidator>();
 
-            services.AddScoped<IShakeGenerator, ShakeGenerator>();
+            services.AddTransient<IShakeGenerator, ShakeGenerator>();
 
-            services.AddScoped<IAccountService, AccountService>();
+            services.AddTransient<IAccountService, AccountService>();
 
             services.AddSingleton<IMlDsaKeyVerifier, MlDsaKeyVerifier>();
 
-            services.AddSingleton<ITimestampValidator>(new TimestampValidator(maxSkewSeconds: 30));
+            services.AddSingleton<ITimestampValidator>(new TimestampValidator(maxSkewSeconds: 30)); 
+
+            services.AddSingleton<ICloudFileStorage, R2FileStorage>();
+
+            services.AddTransient<IAvatarService, AvatarService>();
 
             return services;
         }

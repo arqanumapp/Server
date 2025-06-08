@@ -10,32 +10,38 @@ namespace ArqanumServer.Services
 {
     public interface IAccountService
     {
-        Task<bool> CreateAccountAsync(byte[] requestSignature, byte[] rawJson);
+        Task<(bool IsComplete, string? AvatarUrl)> CreateAccountAsync(byte[] requestSignature, byte[] rawData);
 
         Task<UsernameAvailabilityResponseDto> IsUsernameTakenAsync(string username);
     }
-    public class AccountService(AppDbContext dbContext, IProofOfWorkValidator proofOfWorkService, IHCaptchaValidator hCaptchaService, ITimestampValidator timestampValidator, IMlDsaKeyVerifier mlDsaKeyVerifier) : IAccountService
+    public class AccountService(AppDbContext dbContext, IProofOfWorkValidator proofOfWorkService, IHCaptchaValidator hCaptchaService, ITimestampValidator timestampValidator, IMlDsaKeyVerifier mlDsaKeyVerifier, IAvatarService avatarService) : IAccountService
     {
-        public async Task<bool> CreateAccountAsync(byte[] requestSignature, byte[] rawData)
+        public async Task<(bool IsComplete, string? AvatarUrl)> CreateAccountAsync(byte[] requestSignature, byte[] rawData)
         {
             try
             {
                 var request = MessagePackSerializer.Deserialize<CreateAccountDto>(rawData);
 
                 if (!timestampValidator.IsValid(request.Timestamp))
-                    return false;
+                    return (false, null);
 
                 if (!await hCaptchaService.VerifyAsync(request.CaptchaToken))
-                    return false;
+                    return (false, null);
 
                 if (await dbContext.Accounts.AnyAsync(a => a.Id == request.AccountId))
-                    return false;
+                    return (false, null);
 
                 if (!await mlDsaKeyVerifier.VerifyAsync(request.SignaturePublicKey, rawData, requestSignature))
-                    return false;
+                    return (false, null);
 
                 if (!await proofOfWorkService.CheckProofAsync(request.AccountId, request.ProofOfWork, request.ProofOfWorkNonce, Convert.ToBase64String(request.SignaturePublicKey)))
-                    return false;
+                    return (false, null);
+
+                var initial = !string.IsNullOrEmpty(request.Username) ? request.Username[0] : 'A';
+
+                var defaultAvatar = await avatarService.GenerateAvatarStream(initial);
+
+                var defaultAvatarUrl = await avatarService.SaveAvatarAsync(defaultAvatar, "png");
 
                 Account newAccount = new()
                 {
@@ -44,15 +50,16 @@ namespace ArqanumServer.Services
                     FirstName = request.FirstName,
                     LastName = request.LastName,
                     SignaturePublicKey = request.SignaturePublicKey,
+                    AvatarUrl = defaultAvatarUrl,
                 };
 
                 await dbContext.Accounts.AddAsync(newAccount);
                 await dbContext.SaveChangesAsync();
-                return true;
+                return (true, defaultAvatarUrl);
             }
             catch (Exception ex)
             {
-                return false;
+                return (false, null);
             }
         }
 

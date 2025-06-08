@@ -15,6 +15,8 @@ namespace ArqanumServer.Models.Entities
 
         public string? Bio { get; set; }
 
+        public string AvatarUrl { get; set; }
+
         public byte[] SignaturePublicKey { get; set; }
     }
 

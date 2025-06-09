@@ -25,6 +25,8 @@ namespace ArqanumServer.Extensions
 
             services.AddTransient<IAvatarService, AvatarService>();
 
+            services.AddTransient<IContactService, ContactService>();
+
             return services;
         }
     }

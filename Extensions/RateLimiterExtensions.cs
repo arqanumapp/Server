@@ -24,6 +24,14 @@ namespace ArqanumServer.Extensions
                     limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
                     limiterOptions.QueueLimit = 0;
                 });
+
+                options.AddFixedWindowLimiter(policyName: "find-contact", limiterOptions =>
+                {
+                    limiterOptions.PermitLimit = 60;
+                    limiterOptions.Window = TimeSpan.FromMinutes(1);
+                    limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                    limiterOptions.QueueLimit = 0;
+                });
             });
 
             return services;

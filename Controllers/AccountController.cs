@@ -46,7 +46,7 @@ namespace ArqanumServer.Controllers
                 if (string.IsNullOrWhiteSpace(request.Username))
                     return BadRequest("Username is required.");
 
-                var result = await accountService.IsUsernameTakenAsync(request.Username);
+                var result = await accountService.IsUsernameTakenAsync(request);
 
                 return Ok(result);
             }
@@ -56,5 +56,34 @@ namespace ArqanumServer.Controllers
             }
         }
 
+        [HttpPost("update-fullname")]
+        [EnableRateLimiting("update-fullname")]
+        public async Task<IActionResult> UpdateFullName()
+        {
+            try
+            {
+                if (!Request.Headers.TryGetValue("X-Signature", out var signatureHeader))
+                    return BadRequest("Missing X-Signature header");
+
+                var signatureBytes = Convert.FromBase64String(signatureHeader);
+
+                using var ms = new MemoryStream();
+
+                await Request.Body.CopyToAsync(ms);
+
+                var rawData = ms.ToArray();
+
+                var (Responce, IsComplete) = await accountService.UpdateFullNameAsync(signatureBytes, rawData);
+
+                if (!IsComplete)
+                    return BadRequest("Invalid signature or data");
+
+                return Ok(Responce);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest();
+            }
+        }
     }
 }

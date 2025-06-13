@@ -14,12 +14,12 @@ namespace ArqanumServer.Extensions
                     limiterOptions.PermitLimit = 1;
                     limiterOptions.Window = TimeSpan.FromMinutes(1);
                     limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-                    limiterOptions.QueueLimit = 0;
+                    limiterOptions.QueueLimit = 1;
                 });
 
                 options.AddFixedWindowLimiter(policyName: "username-available", limiterOptions =>
                 {
-                    limiterOptions.PermitLimit = 60;
+                    limiterOptions.PermitLimit = 30;
                     limiterOptions.Window = TimeSpan.FromMinutes(1);
                     limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
                     limiterOptions.QueueLimit = 0;
@@ -27,10 +27,18 @@ namespace ArqanumServer.Extensions
 
                 options.AddFixedWindowLimiter(policyName: "find-contact", limiterOptions =>
                 {
-                    limiterOptions.PermitLimit = 60;
+                    limiterOptions.PermitLimit = 30;
                     limiterOptions.Window = TimeSpan.FromMinutes(1);
                     limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
                     limiterOptions.QueueLimit = 0;
+                });
+
+                options.AddFixedWindowLimiter(policyName: "update-fullname", limiterOptions =>
+                {
+                    limiterOptions.PermitLimit = 6;
+                    limiterOptions.Window = TimeSpan.FromMinutes(1);
+                    limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                    limiterOptions.QueueLimit = 6;
                 });
             });
 

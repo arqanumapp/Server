@@ -18,6 +18,8 @@ namespace ArqanumServer.Models.Entities
         public string AvatarUrl { get; set; }
 
         public byte[] SignaturePublicKey { get; set; }
+
+        public long Version { get; set; }
     }
 
     public class AccountConfiguration : IEntityTypeConfiguration<Account>

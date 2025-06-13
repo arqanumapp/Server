@@ -47,6 +47,8 @@ namespace ArqanumServer.Services
                 })
                 .FirstOrDefaultAsync();
 
+            dto.Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
             return dto;
         }
     }

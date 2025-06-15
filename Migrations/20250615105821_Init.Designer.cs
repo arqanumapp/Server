@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ArqanumServer.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250613135535_AccountVersion")]
-    partial class AccountVersion
+    [Migration("20250615105821_Init")]
+    partial class Init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

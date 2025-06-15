@@ -1,9 +1,11 @@
 ﻿using ArqanumServer.Data;
+using Microsoft.Extensions.Options;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.Runtime;
 
 namespace ArqanumServer.Services
 {
@@ -16,8 +18,9 @@ namespace ArqanumServer.Services
         Task<Stream> GenerateAvatarStream(char initial);
     }
 
-    public class AvatarService(ICloudFileStorage cloud) : IAvatarService
+    public class AvatarService(ICloudFileStorage cloud, IOptions<R2StorageSettings> options) : IAvatarService
     {
+        private readonly R2StorageSettings _settings = options.Value;
         public async Task<string> SaveAvatarAsync(Stream stream, string format)
         {
             string contentType = format.ToLowerInvariant() switch
@@ -30,8 +33,12 @@ namespace ArqanumServer.Services
             return await cloud.PublicUploadAsync(path, stream, contentType);
         }
 
-        public Task DeleteAvatarAsync(string path)
-        {   
+        public Task DeleteAvatarAsync(string fullUrl)
+        {
+            if (!fullUrl.StartsWith(_settings.PublicUrl, StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException("URL doesn't start with expected base URL");
+
+            var path = fullUrl.Substring(_settings.PublicUrl.Length).TrimStart('/');
             return cloud.DeleteAsync(path);
         }
 

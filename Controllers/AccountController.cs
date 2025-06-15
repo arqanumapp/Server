@@ -85,5 +85,95 @@ namespace ArqanumServer.Controllers
                 return BadRequest();
             }
         }
+
+        [HttpPost("update-username")]
+        [EnableRateLimiting("update-username")]
+        public async Task<IActionResult> UpdateUsername()
+        {
+            try
+            {
+                if (!Request.Headers.TryGetValue("X-Signature", out var signatureHeader))
+                    return BadRequest("Missing X-Signature header");
+
+                var signatureBytes = Convert.FromBase64String(signatureHeader);
+
+                using var ms = new MemoryStream();
+
+                await Request.Body.CopyToAsync(ms);
+
+                var rawData = ms.ToArray();
+
+                var (Responce, IsComplete) = await accountService.UpdateUsernameAsync(signatureBytes, rawData);
+
+                if (!IsComplete)
+                    return BadRequest("Invalid signature or data");
+
+                return Ok(Responce);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest();
+            }
+        }
+
+        [HttpPost("update-bio")]
+        [EnableRateLimiting("update-bio")]
+        public async Task<IActionResult> UpdateBio()
+        {
+            try
+            {
+                if (!Request.Headers.TryGetValue("X-Signature", out var signatureHeader))
+                    return BadRequest("Missing X-Signature header");
+
+                var signatureBytes = Convert.FromBase64String(signatureHeader);
+
+                using var ms = new MemoryStream();
+
+                await Request.Body.CopyToAsync(ms);
+
+                var rawData = ms.ToArray();
+
+                var (Responce, IsComplete) = await accountService.UpdateBioAsync(signatureBytes, rawData);
+
+                if (!IsComplete)
+                    return BadRequest("Invalid signature or data");
+
+                return Ok(Responce);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest();
+            }
+        }
+
+        [HttpPost("update-avatar")]
+        [EnableRateLimiting("update-avatar")]
+        public async Task<IActionResult> UpdateAvatar()
+        {
+            try
+            {
+                if (!Request.Headers.TryGetValue("X-Signature", out var signatureHeader))
+                    return BadRequest("Missing X-Signature header");
+
+                var signatureBytes = Convert.FromBase64String(signatureHeader);
+
+                using var ms = new MemoryStream();
+
+                await Request.Body.CopyToAsync(ms);
+
+                var rawData = ms.ToArray();
+
+                var (Responce, IsComplete) = await accountService.UpdateAvatar(signatureBytes, rawData);
+
+                if (!IsComplete)
+                    return BadRequest("Invalid signature or data");
+
+                return Ok(Responce);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest();
+            }
+        }
     }
 }

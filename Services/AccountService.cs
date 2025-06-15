@@ -14,7 +14,13 @@ namespace ArqanumServer.Services
 
         Task<UsernameAvailabilityResponseDto> IsUsernameTakenAsync(UsernameAvailabilityRequestDto dto);
 
-        Task<(UpdateFullNameResponseDto? Responce, bool IsComplete)> UpdateFullNameAsync(byte[] requestSignature, byte[] rawData);
+        Task<(UpdateFullNameResponseDto? Response, bool IsComplete)> UpdateFullNameAsync(byte[] requestSignature, byte[] rawData);
+
+        Task<(UpdateUsernameResponseDto? Response, bool IsComplete)> UpdateUsernameAsync(byte[] requestSignature, byte[] rawData);
+
+        Task<(UpdateBioResponseDto? Response, bool IsComplete)> UpdateBioAsync(byte[] requestSignature, byte[] rawData);
+
+        Task<(UpdateAvatarResponseDto? Response, bool IsComplete)> UpdateAvatar(byte[] requestSignature, byte[] rawData);
     }
 
     public class AccountService(AppDbContext dbContext, IProofOfWorkValidator proofOfWorkService, IHCaptchaValidator hCaptchaService, ITimestampValidator timestampValidator, IMlDsaKeyVerifier mlDsaKeyVerifier, IAvatarService avatarService) : IAccountService
@@ -68,47 +74,183 @@ namespace ArqanumServer.Services
 
         public async Task<UsernameAvailabilityResponseDto> IsUsernameTakenAsync(UsernameAvailabilityRequestDto dto)
         {
-            if (!timestampValidator.IsValid(dto.Timestamp))
-                throw new ArgumentException("Invalid timestamp.", nameof(dto.Timestamp));
+            try
+            {
+                if (!timestampValidator.IsValid(dto.Timestamp))
+                    throw new ArgumentException("Invalid timestamp.", nameof(dto.Timestamp));
 
-            if (string.IsNullOrWhiteSpace(dto.Username))
-                throw new ArgumentException("Username must not be null or empty.", nameof(dto.Username));
+                if (string.IsNullOrWhiteSpace(dto.Username))
+                    throw new ArgumentException("Username must not be null or empty.", nameof(dto.Username));
 
-            var exists = await dbContext.Accounts
-                .AsNoTracking()
-                .AnyAsync(a => a.Username == dto.Username);
+                var exists = await dbContext.Accounts
+                    .AsNoTracking()
+                    .AnyAsync(a => a.Username == dto.Username);
 
-            return new UsernameAvailabilityResponseDto { Available = !exists, Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds() };
+                return new UsernameAvailabilityResponseDto { Available = !exists, Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds() };
+            }
+            catch (Exception ex)
+            {
+                return new UsernameAvailabilityResponseDto { Available = false, Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds() };
+            }
         }
 
-        public async Task<(UpdateFullNameResponseDto? Responce, bool IsComplete)> UpdateFullNameAsync(byte[] requestSignature, byte[] rawData)
+        public async Task<(UpdateFullNameResponseDto? Response, bool IsComplete)> UpdateFullNameAsync(byte[] requestSignature, byte[] rawData)
         {
-            var request = MessagePackSerializer.Deserialize<UpdateFullNameRequestDto>(rawData);
+            try
+            {
+                var request = MessagePackSerializer.Deserialize<UpdateFullNameRequestDto>(rawData);
 
-            if (!timestampValidator.IsValid(request.Timestamp))
+                if (!timestampValidator.IsValid(request.Timestamp))
+                    return (null, false);
+
+                var accountPublicKeyBytes = await dbContext.Accounts
+                    .AsNoTracking()
+                    .Where(a => a.Id == request.AccountId)
+                    .Select(a => a.SignaturePublicKey)
+                    .FirstOrDefaultAsync() ?? throw new ArgumentException();
+
+                if (!await mlDsaKeyVerifier.VerifyAsync(accountPublicKeyBytes, rawData, requestSignature))
+                    throw new UnauthorizedAccessException("Invalid signature.");
+
+                var account = await dbContext.Accounts.FirstOrDefaultAsync(a => a.Id == request.AccountId);
+
+                if (account == null)
+                    return (null, false);
+
+                account.FirstName = request.FirstName;
+                account.LastName = request.LastName;
+                account.Version++;
+
+                await dbContext.SaveChangesAsync();
+
+                return (new() { Version = account.Version, Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds() }, true);
+            }
+            catch (Exception ex)
+            {
                 return (null, false);
+            }
+        }
 
-            var accountPublicKeyBytes = await dbContext.Accounts
-                .AsNoTracking()
-                .Where(a => a.Id == request.AccountId)
-                .Select(a => a.SignaturePublicKey)
-                .FirstOrDefaultAsync() ?? throw new ArgumentException();
+        public async Task<(UpdateUsernameResponseDto? Response, bool IsComplete)> UpdateUsernameAsync(byte[] requestSignature, byte[] rawData)
+        {
+            try
+            {
+                var request = MessagePackSerializer.Deserialize<UpdateUsernameRequestDto>(rawData);
 
-            if (!await mlDsaKeyVerifier.VerifyAsync(accountPublicKeyBytes, rawData, requestSignature))
-                throw new UnauthorizedAccessException("Invalid signature.");
+                if (!timestampValidator.IsValid(request.Timestamp))
+                    return (null, false);
 
-            var account = await dbContext.Accounts.FirstOrDefaultAsync(a => a.Id == request.AccountId);
+                bool isTaken = await dbContext.Accounts
+                    .AnyAsync(a => a.Username == request.NewUsername && a.Id != request.AccountId);
 
-            if (account == null)
+                if (isTaken)
+                    return (null, false);
+
+                var accountPublicKeyBytes = await dbContext.Accounts
+                    .AsNoTracking()
+                    .Where(a => a.Id == request.AccountId)
+                    .Select(a => a.SignaturePublicKey)
+                    .FirstOrDefaultAsync() ?? throw new ArgumentException();
+
+                if (!await mlDsaKeyVerifier.VerifyAsync(accountPublicKeyBytes, rawData, requestSignature))
+                    return (null, false);
+
+                var account = await dbContext.Accounts.FirstOrDefaultAsync(a => a.Id == request.AccountId);
+
+                if (account == null)
+                    return (null, false);
+
+                account.Username = request.NewUsername;
+                account.Version++;
+
+                await dbContext.SaveChangesAsync();
+
+                return (new() { Version = account.Version, Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds() }, true);
+            }
+            catch (Exception ex)
+            {
                 return (null, false);
+            }
+        }
 
-            account.FirstName = request.FirstName;
-            account.LastName = request.LastName;
-            account.Version++;
+        public async Task<(UpdateBioResponseDto? Response, bool IsComplete)> UpdateBioAsync(byte[] requestSignature, byte[] rawData)
+        {
+            try
+            {
+                var request = MessagePackSerializer.Deserialize<UpdateBioRequestDto>(rawData);
 
-            await dbContext.SaveChangesAsync();
+                if (!timestampValidator.IsValid(request.Timestamp))
+                    return (null, false);
 
-            return (new() { Version = account.Version, Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds() }, true);
+                var accountPublicKeyBytes = await dbContext.Accounts
+                    .AsNoTracking()
+                    .Where(a => a.Id == request.AccountId)
+                    .Select(a => a.SignaturePublicKey)
+                    .FirstOrDefaultAsync() ?? throw new ArgumentException();
+
+                if (!await mlDsaKeyVerifier.VerifyAsync(accountPublicKeyBytes, rawData, requestSignature))
+                    return (null, false);
+
+                var account = await dbContext.Accounts.FirstOrDefaultAsync(a => a.Id == request.AccountId);
+
+                if (account == null)
+                    return (null, false);
+
+                account.Bio = request.Bio;
+                account.Version++;
+
+                await dbContext.SaveChangesAsync();
+
+                return (new() { Version = account.Version, Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds() }, true);
+            }
+            catch (Exception ex)
+            {
+                return (null, false);
+            }
+        }
+
+        public async Task<(UpdateAvatarResponseDto? Response, bool IsComplete)> UpdateAvatar(byte[] requestSignature, byte[] rawData)
+        {
+            try
+            {
+                var request = MessagePackSerializer.Deserialize<UpdateAvatarRequestDto>(rawData);
+
+                if (!timestampValidator.IsValid(request.Timestamp))
+                    return (null, false);
+
+                var accountPublicKeyBytes = await dbContext.Accounts
+                    .AsNoTracking()
+                    .Where(a => a.Id == request.AccountId)
+                    .Select(a => a.SignaturePublicKey)
+                    .FirstOrDefaultAsync() ?? throw new ArgumentException();
+
+                if (!await mlDsaKeyVerifier.VerifyAsync(accountPublicKeyBytes, rawData, requestSignature))
+                    return (null, false);
+                
+                var avatarUrl = await avatarService.SaveAvatarAsync(new MemoryStream(request.AvatarData), request.Format);
+
+                if (string.IsNullOrEmpty(avatarUrl))
+                    return (null, false);
+
+                var account = await dbContext.Accounts.FirstOrDefaultAsync(a => a.Id == request.AccountId);
+
+                if (account == null)
+                    return (null, false);
+
+                await avatarService.DeleteAvatarAsync(account.AvatarUrl);
+
+                account.Version++;
+                account.AvatarUrl = avatarUrl;
+
+                await dbContext.SaveChangesAsync();
+
+                return (new() { Version = account.Version, Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(), AvatarUrl = avatarUrl }, true);
+            }
+            catch (Exception ex)
+            {
+                return (null, false);
+            }
         }
     }
+
 }

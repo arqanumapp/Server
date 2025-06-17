@@ -27,6 +27,8 @@ namespace ArqanumServer.Extensions
 
             services.AddTransient<IContactService, ContactService>();
 
+            services.AddSingleton<ISignalRConnectionStore, SignalRConnectionStore>();
+
             return services;
         }
     }

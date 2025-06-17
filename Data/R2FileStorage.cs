@@ -4,6 +4,19 @@ using Microsoft.Extensions.Options;
 
 namespace ArqanumServer.Data
 {
+    public class R2StorageSettings
+    {
+        public string AccessKey { get; set; }
+
+        public string SecretKey { get; set; }
+
+        public string BucketName { get; set; }
+
+        public string Endpoint { get; set; }
+
+        public string PublicUrl { get; set; }
+    }
+
     public interface ICloudFileStorage
     {
         Task<string> PrivateUploadAsync(string path, Stream data, string contentType, CancellationToken cancellationToken = default);

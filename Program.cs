@@ -1,10 +1,12 @@
-using Amazon;
 using Amazon.Runtime;
 using Amazon.S3;
 using ArqanumServer.Data;
 using ArqanumServer.Extensions;
+using ArqanumServer.Hubs;
+using ArqanumServer.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,14 +31,18 @@ builder.Services.AddSingleton<IAmazonS3>(sp =>
     return new AmazonS3Client(credentials, config);
 });
 
-
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddMvc();
 
+builder.Services.AddCustomRateLimiters();
+
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp => ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("RedisConnection")));
+
+builder.Services.AddSignalR().AddMessagePackProtocol();
+
 builder.Services.AddArqanumServices();
 
-builder.Services.AddCustomRateLimiters();
 
 var app = builder.Build();
 
@@ -51,6 +57,8 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseAuthorization();
+
+app.MapHub<AppHub>("/hub/app");
 
 app.UseEndpoints(endpoints =>
 {

@@ -3,10 +3,9 @@ using Amazon.S3;
 using ArqanumServer.Data;
 using ArqanumServer.Extensions;
 using ArqanumServer.Hubs;
-using ArqanumServer.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using StackExchange.Redis;
+using System.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,11 +36,20 @@ builder.Services.AddMvc();
 
 builder.Services.AddCustomRateLimiters();
 
-builder.Services.AddSingleton<IConnectionMultiplexer>(sp => ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("RedisConnection")));
+builder.Services.Configure<UpstashSettings>(builder.Configuration.GetSection("Upstash"));
 
-builder.Services.AddSignalR().AddMessagePackProtocol();
+builder.Services.AddHttpClient("Upstash", (serviceProvider, client) =>
+{
+    var settings = serviceProvider.GetRequiredService<IOptions<UpstashSettings>>().Value;
+
+    client.BaseAddress = new Uri(settings.BaseUrl);
+    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", settings.BearerToken);
+});
+
+builder.Services.AddSignalR();
 
 builder.Services.AddArqanumServices();
+
 
 
 var app = builder.Build();

@@ -27,14 +27,6 @@ namespace ArqanumServer.Extensions
                     limiterOptions.QueueLimit = 0;
                 });
 
-                options.AddFixedWindowLimiter(policyName: "find-contact", limiterOptions =>
-                {
-                    limiterOptions.PermitLimit = 30;
-                    limiterOptions.Window = TimeSpan.FromMinutes(1);
-                    limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-                    limiterOptions.QueueLimit = 0;
-                });
-
                 options.AddFixedWindowLimiter(policyName: "update-fullname", limiterOptions =>
                 {
                     limiterOptions.PermitLimit = 10;
@@ -62,6 +54,34 @@ namespace ArqanumServer.Extensions
                 options.AddFixedWindowLimiter(policyName: "update-avatar", limiterOptions =>
                 {
                     limiterOptions.PermitLimit = 30;
+                    limiterOptions.Window = TimeSpan.FromMinutes(1);
+                    limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                    limiterOptions.QueueLimit = 0;
+                });
+
+                #endregion
+
+                #region Contact controller
+
+                options.AddFixedWindowLimiter(policyName: "find", limiterOptions =>
+                {
+                    limiterOptions.PermitLimit = 60;
+                    limiterOptions.Window = TimeSpan.FromMinutes(1);
+                    limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                    limiterOptions.QueueLimit = 0;
+                });
+
+                options.AddFixedWindowLimiter(policyName: "add", limiterOptions =>
+                {
+                    limiterOptions.PermitLimit = 30;
+                    limiterOptions.Window = TimeSpan.FromMinutes(1);
+                    limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                    limiterOptions.QueueLimit = 0;
+                });
+
+                options.AddFixedWindowLimiter(policyName: "confirm", limiterOptions =>
+                {
+                    limiterOptions.PermitLimit = 60;
                     limiterOptions.Window = TimeSpan.FromMinutes(1);
                     limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
                     limiterOptions.QueueLimit = 0;

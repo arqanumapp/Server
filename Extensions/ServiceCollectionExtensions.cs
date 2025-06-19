@@ -19,7 +19,7 @@ namespace ArqanumServer.Extensions
 
             services.AddSingleton<IMlDsaKeyVerifier, MlDsaKeyVerifier>();
 
-            services.AddSingleton<ITimestampValidator>(new TimestampValidator(maxSkewSeconds: 30)); 
+            services.AddSingleton<ITimestampValidator>(new TimestampValidator(maxSkewSeconds: 30));
 
             services.AddSingleton<ICloudFileStorage, R2FileStorage>();
 
@@ -28,6 +28,8 @@ namespace ArqanumServer.Extensions
             services.AddTransient<IContactService, ContactService>();
 
             services.AddSingleton<ISignalRConnectionStore, SignalRConnectionStore>();
+
+            services.AddSingleton<ISignalRSenderService, SignalRSenderService>();
 
             return services;
         }

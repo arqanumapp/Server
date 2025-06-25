@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ArqanumServer.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250618161801_UpdateRequestModel")]
-    partial class UpdateRequestModel
+    [Migration("20250624204425_InitDb")]
+    partial class InitDb
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -72,11 +72,10 @@ namespace ArqanumServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<byte[]>("Payload")
-                        .IsRequired()
-                        .HasColumnType("varbinary(max)");
+                    b.Property<int>("Method")
+                        .HasColumnType("int");
 
-                    b.Property<byte[]>("PayloadSignature")
+                    b.Property<byte[]>("Payload")
                         .IsRequired()
                         .HasColumnType("varbinary(max)");
 

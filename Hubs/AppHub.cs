@@ -8,25 +8,15 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace ArqanumServer.Hubs
 {
-    public class AppHub(ISignalRConnectionStore signalRConnectionStore, IMlDsaKeyVerifier mlDsaKeyVerifier, AppDbContext appDbContext, ITimestampValidator timestampValidator) : Hub
+    public class AppHub(ISignalRConnectionStore signalRConnectionStore, IMlDsaKeyVerifier mlDsaKeyVerifier, AppDbContext appDbContext, ITimestampValidator timestampValidator, IPendingNotificationService pendingNotificationService) : Hub
     {
         public override async Task OnConnectedAsync()
-        {
-            var logFile = Path.Combine("logs", "signalr.txt");
-
-            void Log(string message)
-            {
-                var logLine = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}";
-                Directory.CreateDirectory("logs");
-                File.AppendAllText(logFile, logLine);
-            }
-
+        {         
             var httpContext = Context.GetHttpContext();
             var authHeader = httpContext?.Request.Headers["Authorization"].ToString();
 
             if (string.IsNullOrWhiteSpace(authHeader) || !authHeader.StartsWith("Bearer "))
             {
-                Log("Missing or invalid Authorization header");
                 Context.Abort();
                 return;
             }
@@ -38,7 +28,6 @@ namespace ArqanumServer.Hubs
                 var parts = token.Split('|');
                 if (parts.Length != 2)
                 {
-                    Log("Token format invalid (parts.Length != 2)");
                     Context.Abort();
                     return;
                 }
@@ -56,7 +45,6 @@ namespace ArqanumServer.Hubs
                 }
                 catch (FormatException ex)
                 {
-                    Log($"Base64 decoding failed: {ex}");
                     Context.Abort();
                     return;
                 }
@@ -68,14 +56,12 @@ namespace ArqanumServer.Hubs
                 }
                 catch (Exception ex)
                 {
-                    Log($"MessagePack deserialization failed: {ex}");
                     Context.Abort();
                     return;
                 }
 
                 if (!timestampValidator.IsValid(auth.Timestamp))
                 {
-                    Log("Timestamp is not valid");
                     Context.Abort();
                     return;
                 }
@@ -83,7 +69,6 @@ namespace ArqanumServer.Hubs
                 var account = await appDbContext.Accounts.FindAsync(auth.AccountId);
                 if (account == null)
                 {
-                    Log($"Account not found: {auth.AccountId}");
                     Context.Abort();
                     return;
                 }
@@ -91,13 +76,12 @@ namespace ArqanumServer.Hubs
                 var isValid = await mlDsaKeyVerifier.VerifyAsync(account.SignaturePublicKey, authBytes, signature);
                 if (!isValid)
                 {
-                    Log("Signature verification failed");
                     Context.Abort();
                     return;
                 }
+
                 if (!await signalRConnectionStore.RemoveAllConnectionsAsync(auth.AccountId))
                 {
-                    Log("Failed to remove old connections");
                     Context.Abort();
                     return;
                 }
@@ -106,13 +90,12 @@ namespace ArqanumServer.Hubs
                     Context.Abort();
                     return;
                 }
-                var test = await  signalRConnectionStore.GetConnectionAsync(account.Id);
-                Log($"Connection authorized: {auth.AccountId} -> {Context.ConnectionId}");
                 await base.OnConnectedAsync();
+
+                await pendingNotificationService.SendUpdates(account.Id);
             }
             catch (Exception ex)
             {
-                Log($"Unhandled exception: {ex}");
                 Context.Abort();
             }
         }

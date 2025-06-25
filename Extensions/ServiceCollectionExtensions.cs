@@ -31,6 +31,9 @@ namespace ArqanumServer.Extensions
 
             services.AddSingleton<ISignalRSenderService, SignalRSenderService>();
 
+            services.AddSingleton<IPendingNotificationService, PendingNotificationService>();
+
+
             return services;
         }
     }

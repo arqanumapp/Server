@@ -76,21 +76,17 @@ namespace ArqanumServer.Services
                 if (!await mlDsaKeyVerifier.VerifyAsync(accountPublicKeyBytes, rawData, requestSignature))
                     return false;
 
-                var responcePyload = new ContactPayload
+
+
+                var responcePayload = new BaseContactHubMessage
                 {
-                    SenderId = payload.SenderId,
-                    SignaturePublicKey = accountPublicKeyBytes,
-                    ContactPublicKey = request.PayloadSignature
+                    Payload = request.Payload,
+                    PayloadSignature = request.PayloadSignature,
+                    Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                    MessageType = ContactHubMessageType.NewContactRequest
                 };
 
-                var responcePayload = new BaseContactHubMessage();
-
-                responcePayload.Payload = request.Payload;
-                responcePayload.PayloadSignature = request.PayloadSignature;
-                responcePayload.Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-                responcePayload.MessageType = ContactHubMessageType.NewContactRequest;
-
-                var responcePayloadBytes = MessagePackSerializer.Serialize(responcePayload);   
+                var responcePayloadBytes = MessagePackSerializer.Serialize(responcePayload);
 
                 if (await signalRSenderService.SendAsync("Contact", responcePayloadBytes, request.RecipientId))
                 {
@@ -99,11 +95,16 @@ namespace ArqanumServer.Services
                 else
                 {
                     var requestData = new Request();
+
+                    responcePayload.Timestamp = 0;
+
                     requestData.RecipientId = request.RecipientId;
-                    requestData.Payload = request.Payload;
-                    requestData.PayloadSignature = request.PayloadSignature;
+                    requestData.Payload = MessagePackSerializer.Serialize(responcePayload);
+                    requestData.Method = RequestMethod.Contact;
+
                     appDbContext.Requests.Add(requestData);
                     await appDbContext.SaveChangesAsync();
+
                     return true;
                 }
             }

@@ -69,11 +69,10 @@ namespace ArqanumServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<byte[]>("Payload")
-                        .IsRequired()
-                        .HasColumnType("varbinary(max)");
+                    b.Property<int>("Method")
+                        .HasColumnType("int");
 
-                    b.Property<byte[]>("PayloadSignature")
+                    b.Property<byte[]>("Payload")
                         .IsRequired()
                         .HasColumnType("varbinary(max)");
 
